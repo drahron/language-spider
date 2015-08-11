@@ -1,0 +1,3 @@
+".source.spider, .source.json":
+  editor:
+    commentStart: "// "

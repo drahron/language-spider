@@ -1,0 +1,92 @@
+use atom;
+var CompositeDisposable = ::require("atom").CompositeDisposable;
+var path = ::require('path');
+var fs = ::require('fs');
+var exec = ::require('child_process').exec;
+
+var packagePath = atom.packages.resolvePackagePath("language-spider");
+var linterScript = "\(packagePath)/bin/linter.js";
+
+fn compileSourceFile(filePath, useTempDirectory = false) {
+  var fileName = path.basename(filePath);
+  var cwd = path.dirname(filePath) if !useTempDirectory else "/tmp";
+  if useTempDirectory {
+    fs.writeFileSync("/tmp/\(fileName)", fs.readFileSync(filePath));
+  }
+  var options = {
+    cwd
+  };
+  var command = "spider -c --disable-source-map \(filePath)";
+  var promise = new Promise((resolve, reject) -> {
+    exec(command, options, (error, stdout, stderr) => {
+      var result = {
+        stdout,
+        stderr,
+        outputFile: cwd + "/" + path.basename(fileName, path.extname(fileName)) + ".js"
+      };
+
+      resolve(result);
+    });
+  });
+
+  return promise;
+}
+
+fn parse(result, filePath)
+{
+  if(result.stderr && ! result.stdout)
+  {
+    return {
+      type: 'Error',
+      text: 'Compilation failed. Run it again manually to see error log.',
+      filePath
+    };
+  }
+  var messages = [];
+  var regex = /(?:\s*line\s+)(\d+)(?:\s+col\s+)(\d+)\s+(.+)(?:\n[^\^]+)([\^]+)/g;
+  var match = null;
+  while match = regex.exec(result.stdout) {
+    var lineNumber = parseInt(match[1]) - 1;
+    var firstCharacter = parseInt(match[2]) - 1;
+    var length = match[4].length;
+    messages.push({
+        type: 'Error',
+        text: match[3],
+        range: [
+          [lineNumber, firstCharacter],
+          [lineNumber, firstCharacter + length]
+        ],
+        filePath
+      });
+  }
+  return messages;
+}
+
+async fn lint(textEditor) {
+  return new Promise(async (resolve, reject) -> {
+      var result = await compileSourceFile(textEditor.getPath(),
+                      !atom.config.get('language-spider.compileOnSave'));
+      // ::console.log(result);
+      var messages = parse(result, textEditor.getPath());
+      resolve(messages);
+    });
+}
+
+::module_exports = {
+  config: {
+    compileOnSave: {
+      type: "boolean",
+      default: false
+    }
+  },
+  activate: (state) ->
+  {
+  },
+  provideLinter: () ->
+  {
+    grammarScopes: ['source.spider'],
+    scope: 'file',
+    lintOnFly: false,
+    lint
+  }
+};
