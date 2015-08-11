@@ -1,10 +1,13 @@
 {
   "name": "language-spider",
   "main": "./lib/loader",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Spider language support for Atom editor. Syntax highlighting, linting.",
   "keywords": [
-    "spider", "syntax", "highlighting", "linting"
+    "spider",
+    "syntax",
+    "highlighting",
+    "linting"
   ],
   "repository": "https://github.com/drahron/language-spider",
   "license": "MIT",
