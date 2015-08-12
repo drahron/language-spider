@@ -36,11 +36,13 @@ fn parse(result, filePath)
 {
   if(result.stderr && ! result.stdout)
   {
-    return {
+    return [{
       type: 'Error',
-      text: 'Compilation failed. Run it again manually to see error log.',
+      text: 'Compilation failed.',
+      html: result.stderr,
+      range: [[0,0], [0,1]],
       filePath
-    };
+    }];
   }
   var messages = [];
   var regex = /(?:\s*line\s+)(\d+)(?:\s+col\s+)(\d+)\s+(.+)(?:\n[^\^]+)([\^]+)/g;
